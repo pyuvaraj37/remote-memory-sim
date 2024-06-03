@@ -1,0 +1,81 @@
+{
+    "schema_version":
+    {
+        "schema": "JSON",
+        "creation_date": "Wed May 29 01:42:19 2024 GMT"
+    },
+    "devices":
+    [
+        {
+            "interface_type": "pcie",
+            "device_id": "0000:03:00.0",
+            "platform":
+            {
+                "bdf": "0000:03:00.0",
+                "flash_type": "spi",
+                "hardware":
+                {
+                    "serial_num": "21770201D01T"
+                },
+                "device_properties":
+                {
+                    "board_type": "u280",
+                    "board_name": "ALVEO U280 PQ",
+                    "config_mode": "7",
+                    "max_power_watts": "225W"
+                },
+                "current_partitions": "",
+                "current_shell":
+                {
+                    "vbnv": "xilinx_u280_gen3x16_xdma_base_1",
+                    "logic-uuid": "283BAB8F-654D-8674-968F-4DA57F7FA5D7",
+                    "interface-uuid": "FB2B2C5A-19ED-6359-3FEA-95F51FBC8EB9",
+                    "id": "0x283bab8f654d8674",
+                    "sc_version": "4.3.28"
+                },
+                "status":
+                {
+                    "shell": "true",
+                    "sc": "true",
+                    "is_factory": "false",
+                    "is_recovery": "false"
+                },
+                "status":
+                {
+                    "shell": "false",
+                    "sc": "false",
+                    "is_factory": "false",
+                    "is_recovery": "false"
+                },
+                "available_shells":
+                [
+                    {
+                        "vbnv": "xilinx_u280_gen3x16_xdma_base_1",
+                        "sc_version": "4.3.28",
+                        "id": "0x283bab8f654d8674",
+                        "logic-uuid": "283BAB8F-654D-8674-968F-4DA57F7FA5D7",
+                        "file": "\/lib\/firmware\/xilinx\/283bab8f654d8674968f4da57f7fa5d7\/partition.xsabin"
+                    },
+                    {
+                        "vbnv": "xilinx_u280_xdma_201920_3",
+                        "sc_version": "4.3.10",
+                        "id": "0x5e278820",
+                        "logic-uuid": "",
+                        "file": "\/lib\/firmware\/xilinx\/10ee-500c-000e-000000005e278820.xsabin"
+                    }
+                ],
+                "available_partitions": "",
+                "macs":
+                [
+                    {
+                        "address": "00:0A:35:06:7C:1C"
+                    },
+                    {
+                        "address": "00:0A:35:06:7C:1D"
+                    }
+                ]
+            }
+        }
+    ]
+}
+
