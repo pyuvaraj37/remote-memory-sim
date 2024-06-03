@@ -1,10 +1,8 @@
 # RDMA User Kernel Testbed (only sw_emu)
 
-This github is a test bed to test teh Catch22 feature extractors.
 
-## Installation 
+## Make
 
 ```
-git clone https://github.com/pyuvaraj37/hls_catch22.git
-cd hls_catch22
+make run TARGET=sw_emu PLATFORM=/opt/xilinx/platforms/xilinx_u280_gen3x16_xdma_1_202211_1/xilinx_u280_gen3x16_xdma_1_202211_1.xpfm KERNEL=
 ```
