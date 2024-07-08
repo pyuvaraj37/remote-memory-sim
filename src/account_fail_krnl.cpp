@@ -431,7 +431,8 @@ void mem_manager(
     hls::stream<ap_uint<32>>& permissibility_req,
     hls::stream<ap_uint<32>>& permissibility_rsp,
     hls::stream<ap_uint<64>>& update_rsp,
-    hls::stream<ap_uint<256>>& hb_increment
+    hls::stream<ap_uint<256>>& hb_increment,
+    hls::stream<pkt128>& permission_switch
 ){
     #pragma HLS INTERFACE axis port = minPropReadBram_req
     #pragma HLS INTERFACE axis port = minPropReadBram_rsp
@@ -459,6 +460,7 @@ void mem_manager(
     static int propNum, propValue;
     static bool check_throughput_counter = false;
     static bool read_slot = true; 
+    static pkt128 new_state;
 
     static int FUO[SYNC_GROUPS];
     static ap_uint<256> hb; 
@@ -579,14 +581,43 @@ void mem_manager(
                 HB_thresholds[i]--;
             }
         }
+        
+        int j=0; 
+        int qpn_tmp=board_num*(NUM_NODES-1);
+        while (j<NUM_NODES){
+            if (j != board_num) {
+                if (HB_thresholds[i] < 5 && HB_Status[i]) {
+                    HB_Status[i] = false; 
+                    std::cout << "Remote Node " << i << " crashed." << std::endl; 
+                    new_state.data(15, 0) = qpn_tmp;//qp_num
+                    new_state.data(31, 16) = 0;//new_state init
+                    new_state.keep(7, 0) = 0xff;
+                    new_state.last = 1; 
+                    if(!permission_switch.full()) { 
+                        permission_switch.write(new_state);
+                        j++;
+                        qpn_tmp++;
+                    }
 
-        for (int i = 0; i < NUM_NODES; i++) {
-            if (i != board_number && HB_thresholds[i] < 5 && HB_Status[i]) {
-                HB_Status[i] = false; 
-                std::cout << "Remote Node " << i << " crashed." << std::endl; 
-            } else if (i != board_number && HB_thresholds[i] >= 5 && !HB_Status[i]) {
-                HB_Status[i] = true; 
-                std::cout << "Remote Node " << i << " un-crashed." << std::endl; 
+                } else if (HB_thresholds[i] >= 5 && !HB_Status[i]) {
+                    HB_Status[i] = true; 
+                    std::cout << "Remote Node " << i << " un-crashed." << std::endl; 
+                    new_state.data(15, 0) = qpn_tmp;//qp_num
+                    new_state.data(31, 16) = 2;//new_state init
+                    new_state.keep(7, 0) = 0xff;
+                    new_state.last = 1; 
+                    if(!permission_switch.full()) { 
+                        permission_switch.write(new_state);
+                        j++;
+                        qpn_tmp++;
+                    }
+                } else {
+                    j++;
+                    qpn_tmp++;
+                }
+            } else {
+                j++;
+                qpn_tmp++;
             }
         }
 
@@ -615,6 +646,7 @@ void mem_manager(
 void bank(
     hls::stream<pkt256>& m_axis_tx_meta,
     hls::stream<pkt64>& m_axis_tx_data,
+    hls::stream<pkt128>& permission_switch,
     int board_number,
     int* operation_list,
     ap_uint<32>* amount_list,
@@ -850,7 +882,8 @@ void bank(
             permissibility_req,
             permissibility_rsp,
             update_rsp,
-            hb_increment
+            hb_increment,
+            permission_switch
         );
 
 
@@ -897,6 +930,7 @@ void bank(
 extern "C" void account_fail_krnl(
     hls::stream<pkt256>& m_axis_tx_meta,
     hls::stream<pkt64>& m_axis_tx_data,
+    hls::stream<pkt128>& permission_switch,
     hls::stream<pkt64>& s_axis_tx_status,
     volatile int* HBM_PTR,
     int board_number,
@@ -924,6 +958,7 @@ extern "C" void account_fail_krnl(
     bank(
         m_axis_tx_meta,
         m_axis_tx_data,
+        permission_switch,
         board_number,
         operation_list,
         amount_list,

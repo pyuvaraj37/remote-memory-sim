@@ -187,7 +187,7 @@ int main(int argc, char **argv) {
     int expected_calls; 
     int expected_query = 0; 
     std::ifstream myfile;
-    myfile.open(("benchmark/project/" + std::to_string(ID+1) + ".txt").c_str());
+    myfile.open(("benchmarks/3-4000000-15/courseware/" + std::to_string(ID+1) + ".txt").c_str());
     std::string line; 
     int calls = 0; 
 

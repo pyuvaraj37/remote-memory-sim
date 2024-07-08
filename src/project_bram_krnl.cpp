@@ -1,7 +1,21 @@
-#include "project_krnl.h"
+#include "project_bram_krnl.h"
 
 #define TH 0
 
+const int NUMBER_OF_NODES = 3;
+const int LEADER_OPERATIONS = 112500;
+const int FOLLOWER_OPERATIONS = 18750;
+const ap_uint<64> LEADER_LIST[LEADER_OPERATIONS] = {
+    #include "bram_op_matrix_1.txt"
+};
+
+const ap_uint<64> FOLLOWER_1_LIST[FOLLOWER_OPERATIONS] = {
+    #include "bram_op_matrix_2.txt"
+};
+
+const ap_uint<64> FOLLOWER_2_LIST[FOLLOWER_OPERATIONS] = {
+    #include "bram_op_matrix_3.txt"
+};
 
 /*
     Manages the phase of replication the SMR is in.
@@ -563,64 +577,13 @@ void mem_manager(
 
 }
 
-const int BUFFER_SIZE = 10000; 
-
-void load_buffer(
-    int* operation_list,
-    ap_uint<32>* amount_list,
-    int* operation_list_ptr,
-    ap_uint<32>* amount_list_ptr,
-    bool swap
-) {
-
-    static bool loaded = false; 
-    static int index = 0; 
-    static int operation_list_buffer[BUFFER_SIZE];
-    static ap_uint<32> amount_list_buffer[BUFFER_SIZE];
-
-    std::cout << "START LOADED " << loaded << std::endl; 
-
-    if (swap) {
-        std::cout << "Swapping buffer with pre-loaded buffer" << std::endl; 
-        if (!loaded) {
-            std::cout << "Pre-loaded buffer not loaded... Loading directly..." << std::endl; 
-            for (int i = 0; i < BUFFER_SIZE; i++) {
-                #pragma HLS UNROLL
-                operation_list[i] = operation_list_ptr[index + i];
-                amount_list[i] = amount_list_ptr[index + i];
-            }
-            index += BUFFER_SIZE; 
-        } else {
-            std::cout << "Swapping buffers..." << std::endl; 
-            for (int i = 0; i < BUFFER_SIZE; i++) {
-                #pragma HLS UNROLL
-                operation_list[i] = operation_list_buffer[i];
-                amount_list[i] = amount_list_buffer[i];
-            }
-        }
-        loaded = false; 
-    } else if (!loaded) {
-        std::cout << "Pre-loading buffer..." << std::endl; 
-        for (int i = 0; i < BUFFER_SIZE; i++) {
-            #pragma HLS UNROLL
-            operation_list_buffer[i] = operation_list_ptr[index + i];
-            amount_list_buffer[i] = amount_list_ptr[index + i];
-        }
-        index += BUFFER_SIZE; 
-        loaded = true; 
-    }
-
-    std::cout << "END LOADED " << loaded << std::endl; 
-
-}
-
 
 void project(
     hls::stream<pkt256>& m_axis_tx_meta,
     hls::stream<pkt64>& m_axis_tx_data,
     int board_number,
-    int* operation_list_ptr,
-    ap_uint<32>* amount_list_ptr,
+    // int* operation_list,
+    // ap_uint<32>* amount_list,
     int number_of_operations,
     int number_of_nodes,
     int debug_exe,
@@ -679,6 +642,7 @@ void project(
 
     ap_uint<32> proposed_value, temp_amount, permiss_rsp;
     static int counter = 0;
+    static int operation_list_index = 0; 
     static int debug_counter = 0;
     static bool done = true;
 
@@ -693,99 +657,102 @@ void project(
         projects[i] = true;
     }
 
+    ap_uint<64> operation;
     static ap_uint<32> assign[250000];
     static int assign_counter = 0;
 
-    static int operation_list[BUFFER_SIZE];
-    static ap_uint<32> amount_list[BUFFER_SIZE];
-    static bool swap = true;
-    static int swapped_at = 1;  
 
     //std::cout << "Starting RUBiS accelerator..." << std::endl; 
     RUBIS_MAIN_LOOP: while (debug_counter < debug_exe && counter < number_of_operations) {
     //while (counter < number_of_operations) {
 
-        std::cout << "COUNTER " << counter << std::endl; 
-        swap = (counter % BUFFER_SIZE == 0 && swapped_at != counter) ? true : false;
-        if (swap) swapped_at = counter; 
-
-        std::cout << "SWAP " << swap << std::endl; 
-        load_buffer(
-            operation_list,
-            amount_list,
-            operation_list_ptr,
-            amount_list_ptr,
-            swap
-        );
 
         debug_counter++;
         if (done) {
-            //std::cout << "Counter: " << counter <<  " Method: " << operation_list[counter] << std::endl; 
-            switch (operation_list[counter])
-            {
-                case 0: {
-                    //AddProject
-                    if (!permissibility_req.full()) {
-                        temp_amount = amount_list[counter];
-                        std::cout << "Add Project ID: " << temp_amount.range(31, 0) << std::endl;
-                        proposed_value.range(31, 30) = 0; 
-                        proposed_value.range(29, 0) = temp_amount.range(31, 0);
-                        permissibility_req.write(proposed_value);
-                        done = false;
-                    }
-                    break;
-                }
 
+            switch(board_number) {
+                case 0: {
+                    operation = LEADER_LIST[operation_list_index];
+                    break; 
+                }
                 case 1: {
-                    //DeleteProject
-                    if (!permissibility_req.full()) {
-                        temp_amount = amount_list[counter];
-                        std::cout << "Delete Project ID: " << temp_amount.range(31, 0) << std::endl;
-                        proposed_value.range(31, 30) = 1; 
-                        proposed_value.range(29, 0) = temp_amount.range(31, 0);
-                        permissibility_req.write(proposed_value);
-                        done = false;
-                    }
-                    break;
+                    operation = FOLLOWER_1_LIST[operation_list_index];
+                    break; 
                 }
                 case 2: {
-                    //WorksOn
-                    if (!permissibility_req.full()) {
-                        temp_amount = amount_list[counter];
-                        std::cout << "WorksOn Employee ID: " << temp_amount.range(31, 16) << " Project ID: " << temp_amount.range(15, 0) << std::endl;
-                        proposed_value.range(31, 30) = 2; 
-                        proposed_value.range(29, 0) = temp_amount.range(31, 0);
-                        permissibility_req.write(proposed_value);
-                        done = false;
-                    }
-                    break;
+                    operation = FOLLOWER_2_LIST[operation_list_index];
+                    break; 
                 }
+                default:
+                    break;
+            }
 
-                case 3: {
-                    //AddEmployee
-                    if (!add_req.full()) {
-                        temp_amount = amount_list[counter];
-                        std::cout << "Add Employee ID: " << temp_amount.range(31, 0) << std::endl; 
-                        if (!employee[temp_amount.range(31, 0)]) {
-                            add_req.write(amount_list[counter]);
-                            employee[temp_amount.range(31, 0)] = 1;
+            if (counter == operation.range(59, 32))
+                //std::cout << "Counter: " << counter <<  " Method: " << operation_list[counter] << std::endl; 
+                switch (operation.range(64, 60))
+                {
+                    case 0: {
+                        //AddProject
+                        std::cout << "Add Project ID: " << temp_amount.range(31, 0) << std::endl;
+                        if (!permissibility_req.full()) {
+                            temp_amount = operation.range(32, 0);
+                            proposed_value.range(31, 30) = 0; 
+                            proposed_value.range(29, 0) = temp_amount.range(31, 0);
+                            permissibility_req.write(proposed_value);
+                            done = false;
                         }
-                        counter++; 
+                        break;
                     }
-                    break;
-                }
-                case 4: {
-                    //Query
-                    if (!permissibility_req.full()) {
-                        temp_amount = amount_list[counter];
-                        proposed_value.range(31, 30) = 3; 
-                        proposed_value.range(29, 0) = temp_amount.range(31, 16);
-                        permissibility_req.write(proposed_value);
-                        counter++;
-                    }
-                    break;
-                }
 
+                    case 1: {
+                        //DeleteProject
+                        std::cout << "Delete Project ID: " << temp_amount.range(31, 0) << std::endl;
+                        if (!permissibility_req.full()) {
+                            temp_amount = operation.range(32, 0);
+                            proposed_value.range(31, 30) = 1; 
+                            proposed_value.range(29, 0) = temp_amount.range(31, 0);
+                            permissibility_req.write(proposed_value);
+                            done = false;
+                        }
+                        break;
+                    }
+                    case 2: {
+                        //WorksOn
+                        std::cout << "WorksOn Employee ID: " << temp_amount.range(31, 16) << " Project ID: " << temp_amount.range(15, 0) << std::endl;
+                        if (!permissibility_req.full()) {
+                            temp_amount = operation.range(32, 0);
+                            proposed_value.range(31, 30) = 2; 
+                            proposed_value.range(29, 0) = temp_amount.range(31, 0);
+                            permissibility_req.write(proposed_value);
+                            done = false;
+                        }
+                        break;
+                    }
+
+                    case 3: {
+                        //AddEmployee
+                        if (!add_req.full()) {
+                            temp_amount = operation.range(32, 0);
+                            std::cout << "Add Employee ID: " << temp_amount.range(31, 0) << std::endl; 
+                            if (!employee[temp_amount.range(31, 0)]) {
+                                add_req.write(temp_amount);
+                                employee[temp_amount.range(31, 0)] = 1;
+                            }
+                            counter++; 
+                            operation_list_index++; 
+                        }
+                        break;
+                    }
+                }
+            else {
+                //Query
+                if (!permissibility_req.full()) {
+                    temp_amount = 0;
+                    proposed_value.range(31, 30) = 3; 
+                    proposed_value.range(29, 0) = temp_amount.range(31, 16);
+                    permissibility_req.write(proposed_value);
+                    counter++;
+                }
             }
 
         }
@@ -801,13 +768,14 @@ void project(
                     29 - 0 (15 bits): Project ID
                 */
                 case 0: {
-                    temp_amount = amount_list[counter];
+                    temp_amount = operation.range(32, 0);
                     std::cout << "AddProject - Project ID: " << temp_amount.range(31, 0) << std::endl;
                     if (!projects[temp_amount.range(31, 0)]) {
                         proposed_value.range(31, 30) = 1;
                         proposed_value.range(29, 0) = temp_amount;
                         proposed.write(ProposedValue(proposed_value, 0));
                     } else {
+                        operation_list_index++; 
                         done = true;
                         counter++; 
                     }
@@ -820,13 +788,14 @@ void project(
                     29 - 0 (30 bits): Project ID
                 */
                 case 1: {
-                    temp_amount = amount_list[counter];
+                    temp_amount = operation.range(32, 0);
                     std::cout << "DeleteProject - Project ID: " << temp_amount.range(31, 0) << std::endl;
                     if (projects[temp_amount.range(31, 0)]) {
                         proposed_value.range(31, 30) = 1;
                         proposed_value.range(29, 0) = temp_amount;
                         proposed.write(ProposedValue(proposed_value, 0));
                     } else {
+                        operation_list_index++; 
                         done = true;
                         counter++; 
                     }
@@ -840,7 +809,7 @@ void project(
                     15 - 0 (9 bits) : Project ID
                 */
                 case 2: {
-                    temp_amount = amount_list[counter];
+                    temp_amount = operation.range(32, 0);
                     if (projects[temp_amount.range(31, 16)] && (employee[temp_amount.range(15, 0)] || permiss_rsp.range(29, 0))) {
                         std::cout << "WorksOn Employee ID: " << temp_amount.range(31, 16) << " Project ID: " << temp_amount.range(15, 0) << std::endl;
                         proposed_value.range(31, 30) = 2;
@@ -848,6 +817,7 @@ void project(
                         proposed_value.range(15, 0) = temp_amount.range(15, 0);
                         proposed.write(ProposedValue(proposed_value, 0));
                     } else {
+                        operation_list_index++; 
                         done = true;
                         counter++; 
                     }
@@ -937,6 +907,7 @@ void project(
             smr_updated.read(local_update);
             done = true;
             counter++;
+            operation_list_index++; 
             switch (local_update.range(31, 30))
             {
             case 0:
@@ -996,21 +967,21 @@ void project(
 
 }
 
-extern "C" void project_krnl(
+extern "C" void project_bram_krnl(
     hls::stream<pkt256>& m_axis_tx_meta,
     hls::stream<pkt64>& m_axis_tx_data,
     hls::stream<pkt64>& s_axis_tx_status,
     volatile int* HBM_PTR,
     int board_number,
-    int* operation_list,
-    ap_uint<32>* amount_list,
+    // int* operation_list,
+    // ap_uint<32>* amount_list,
     int number_of_operations,
     int number_of_nodes,
     int debug_exe
 ) {
 
-    #pragma HLS INTERFACE m_axi port=operation_list bundle=gmem0
-    #pragma HLS INTERFACE m_axi port=amount_list bundle=gmem0
+    // #pragma HLS INTERFACE m_axi port=operation_list bundle=gmem0
+    // #pragma HLS INTERFACE m_axi port=amount_list bundle=gmem0
     #pragma HLS INTERFACE m_axi port=HBM_PTR bundle=gmem1
     #pragma HLS INTERFACE axis port = m_axis_tx_meta
     #pragma HLS INTERFACE axis port = m_axis_tx_data
@@ -1027,8 +998,8 @@ extern "C" void project_krnl(
         m_axis_tx_meta,
         m_axis_tx_data,
         board_number,
-        operation_list,
-        amount_list,
+        // operation_list,
+        // amount_list,
         number_of_operations,
         number_of_nodes,
         debug_exe,

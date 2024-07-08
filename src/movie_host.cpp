@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
             // OCL_CHECK(err,
             //           remote_memory_kernel = cl::Kernel(program, "remote_memory", &err));
             OCL_CHECK(err,
-                      user_kernel = cl::Kernel(program, "courseware_krnl", &err));
+                      user_kernel = cl::Kernel(program, "movie_krnl", &err));
             valid_device++;
             break; // we break because we found a valid device
         }
@@ -187,7 +187,7 @@ int main(int argc, char **argv) {
     int expected_calls; 
     int expected_query = 0; 
     std::ifstream myfile;
-    myfile.open(("benchmark/project/" + std::to_string(ID+1) + ".txt").c_str());
+    myfile.open(("benchmarks/3-4000000-15/movie/" + std::to_string(ID+1) + ".txt").c_str());
     std::string line; 
     int calls = 0; 
 

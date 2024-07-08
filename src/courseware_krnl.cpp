@@ -337,7 +337,7 @@ void smr(
 
 }
 
-void addEmployee(
+void addStudent(
     int board_number, 
     int number_of_nodes,
     hls::stream<ap_uint<32>>& broadcast_req, 
@@ -350,7 +350,7 @@ void addEmployee(
     #pragma HLS INTERFACE axis port = m_axis_tx_meta
     #pragma HLS INTERFACE axis port = m_axis_tx_data
     static ap_uint<32> pValue; 
-
+    static int queue_slots = 0;
     if (!broadcast_req.empty()) {
         broadcast_req.read(pValue);
         int j=0; 
@@ -363,7 +363,7 @@ void addEmployee(
                     rdma_write(
                         qpn_tmp,
                         0,
-                        BROADCAST_STOCK_ADDR + (4 * 2 * BROADCAST_STOCK_LEN * board_number +  pValue.range(31, 16)),
+                        BROADCAST_STOCK_ADDR + 4 * (BROADCAST_STOCK_LEN * board_number + queue_slots),
                         0x8,
                         (ap_uint<64>) pValue.range(15, 0),
                         m_axis_tx_meta, 
@@ -377,6 +377,7 @@ void addEmployee(
                 j++;
             }
         }
+        queue_slots++; 
     }
 
 }
@@ -528,7 +529,7 @@ void mem_manager(
 
     if (internal_clock == 10000) {
 
-        //AddEmployee
+        //AddStudent
         for (int i = 0; i < number_of_nodes; i++) {
             hbm_tmp = network_ptr[BROADCAST_BID_PTR + BROADCAST_BID_LEN * i + queue_slots[i]];
             if (hbm_tmp != 0) {
@@ -634,19 +635,19 @@ void courseware(
     static int project_size = 1000;
     static int assign_size = 0;
 
-    static bool employee[2000];
-    static bool projects[2000];
+    static bool students[2000];
+    static bool courses[2000];
     VITIS_LOOP_543_1: for (int i = 0; i < 1000; i++) {
-        employee[i] = true;
-        projects[i] = true;
+        students[i] = true;
+        courses[i] = true;
     }
 
-    static ap_uint<32> assign[250000];
-    static int assign_counter = 0;
+    static ap_uint<32> enroll[250000];
+    static int enroll_counter = 0;
 
 
-    //std::cout << "Starting RUBiS accelerator..." << std::endl; 
-    RUBIS_MAIN_LOOP: while (debug_counter < debug_exe && counter < number_of_operations) {
+    //std::cout << "Starting Courseware accelerator..." << std::endl; 
+    COURSEWARE_MAIN_LOOP: while (debug_counter < debug_exe && counter < number_of_operations) {
     //while (counter < number_of_operations) {
         debug_counter++;
         if (done) {
@@ -696,9 +697,9 @@ void courseware(
                     if (!add_req.full()) {
                         temp_amount = amount_list[counter];
                         std::cout << "Add Employee ID: " << temp_amount.range(31, 0) << std::endl; 
-                        if (!employee[temp_amount.range(31, 0)]) {
+                        if (!students[temp_amount.range(31, 0)]) {
                             add_req.write(amount_list[counter]);
-                            employee[temp_amount.range(31, 0)] = 1;
+                            students[temp_amount.range(31, 0)] = 1;
                         }
                         counter++; 
                     }
@@ -733,7 +734,7 @@ void courseware(
                 case 0: {
                     temp_amount = amount_list[counter];
                     std::cout << "AddProject - Project ID: " << temp_amount.range(31, 0) << std::endl;
-                    if (!projects[temp_amount.range(31, 0)]) {
+                    if (!courses[temp_amount.range(31, 0)]) {
                         proposed_value.range(31, 30) = 1;
                         proposed_value.range(29, 0) = temp_amount;
                         proposed.write(ProposedValue(proposed_value, 0));
@@ -752,7 +753,7 @@ void courseware(
                 case 1: {
                     temp_amount = amount_list[counter];
                     std::cout << "DeleteProject - Project ID: " << temp_amount.range(31, 0) << std::endl;
-                    if (projects[temp_amount.range(31, 0)]) {
+                    if (courses[temp_amount.range(31, 0)]) {
                         proposed_value.range(31, 30) = 1;
                         proposed_value.range(29, 0) = temp_amount;
                         proposed.write(ProposedValue(proposed_value, 0));
@@ -771,7 +772,7 @@ void courseware(
                 */
                 case 2: {
                     temp_amount = amount_list[counter];
-                    if (projects[temp_amount.range(31, 16)] && (employee[temp_amount.range(15, 0)] || permiss_rsp.range(29, 0))) {
+                    if (courses[temp_amount.range(31, 16)] && (students[temp_amount.range(15, 0)] || permiss_rsp.range(29, 0))) {
                         std::cout << "WorksOn Employee ID: " << temp_amount.range(31, 16) << " Project ID: " << temp_amount.range(15, 0) << std::endl;
                         proposed_value.range(31, 30) = 2;
                         proposed_value.range(29, 16) = temp_amount.range(31, 16);
@@ -811,7 +812,7 @@ void courseware(
             number_of_nodes
         );
 
-        addEmployee(
+        addStudent(
             board_number, 
             number_of_nodes,
             add_req, 
@@ -873,20 +874,20 @@ void courseware(
             {
             case 0:
                 std::cout << "AddProject - Project ID: " << update.range(29, 0) << std::endl; 
-                projects[update.range(29, 0)] = true;
+                courses[update.range(29, 0)] = true;
                 project_size++;
                 break;
             
             case 1:
                 std::cout << "DeleteProject - Project ID: " << update.range(29, 0) << std::endl; 
-                projects[update.range(29, 0)] = false; 
+                courses[update.range(29, 0)] = false; 
                 project_size--;
                 break; 
 
             case 2:
                 std::cout << "WorksOn  Employee ID: " << update.range(29, 16) << " Project ID: " << update.range(15, 0) << std::endl; 
-                assign[assign_counter] = update.range(29, 0);
-                assign_counter++;
+                enroll[enroll_counter] = update.range(29, 0);
+                enroll_counter++;
                 break;
 
             default:
@@ -903,20 +904,20 @@ void courseware(
             {
             case 0:
                 std::cout << "AddProject - Project ID: " << update.range(29, 0) << std::endl; 
-                projects[update.range(29, 0)] = true;
+                courses[update.range(29, 0)] = true;
                 project_size++;
                 break;
             
             case 1:
                 std::cout << "DeleteProject - Project ID: " << update.range(29, 0) << std::endl; 
-                projects[update.range(29, 0)] = false; 
+                courses[update.range(29, 0)] = false; 
                 project_size--;
                 break; 
 
             case 2:
                 std::cout << "WorksOn  Employee ID: " << update.range(29, 16) << " Project ID: " << update.range(15, 0) << std::endl; 
-                assign[assign_counter] = update.range(29, 0);
-                assign_counter++;
+                enroll[enroll_counter] = update.range(29, 0);
+                enroll_counter++;
                 break;
 
             default:

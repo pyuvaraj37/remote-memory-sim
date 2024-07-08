@@ -28,7 +28,7 @@ extern "C" void remote_memory(
 
     //Since this memory is on the remote side these will be fliped. 
     ap_uint<64> local_address, remote_address; 
-    //std::cout << "Remote Memory start" << std::endl; 
+    std::cout << "Remote Memory" << std::endl; 
     #pragma HLS DATAFLOW
 
     //Triger when a META pkt arrives

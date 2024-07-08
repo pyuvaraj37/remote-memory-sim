@@ -631,12 +631,12 @@ void movie(
     static bool customers[2000];
 
 
-    //std::cout << "Starting RUBiS accelerator..." << std::endl; 
+    std::cout << "Starting Movie accelerator..." << std::endl; 
     MOVIE_MAIN_LOOP: while (debug_counter < debug_exe && counter < number_of_operations) {
     //while (counter < number_of_operations) {
         debug_counter++;
         if (done) {
-            //std::cout << "Counter: " << counter <<  " Method: " << operation_list[counter] << std::endl; 
+            std::cout << "Counter: " << counter <<  " Method: " << operation_list[counter] << std::endl; 
             switch (operation_list[counter])
             {
                 //AddMovie
@@ -676,7 +676,7 @@ void movie(
                 case 0: {
                     temp_amount = amount_list[counter];
                     std::cout << "AddMovie - Movie ID: " << temp_amount.range(31, 0) << std::endl;
-                    if (!projects[temp_amount.range(31, 0)]) {
+                    if (!movies[temp_amount.range(31, 0)]) {
                         proposed_value.range(31, 30) = 0;
                         proposed_value.range(29, 0) = temp_amount;
                         proposed.write(ProposedValue(proposed_value, 0));
@@ -695,7 +695,7 @@ void movie(
                 case 1: {
                     temp_amount = amount_list[counter];
                     std::cout << "RemoveMovie - Movie ID: " << temp_amount.range(31, 0) << std::endl;
-                    if (projects[temp_amount.range(31, 0)]) {
+                    if (movies[temp_amount.range(31, 0)]) {
                         proposed_value.range(31, 30) = 1;
                         proposed_value.range(29, 0) = temp_amount;
                         proposed.write(ProposedValue(proposed_value, 0));
@@ -714,7 +714,7 @@ void movie(
                 case 2: {
                     temp_amount = amount_list[counter];
                     std::cout << "AddCustomer - Customer ID: " << temp_amount.range(31, 0) << std::endl;
-                    if (!projects[temp_amount.range(31, 0)]) {
+                    if (!customers[temp_amount.range(31, 0)]) {
                         proposed_value.range(31, 30) = 2;
                         proposed_value.range(29, 0) = temp_amount;
                         proposed.write(ProposedValue(proposed_value, 1));
@@ -733,7 +733,7 @@ void movie(
                 case 3: {
                     temp_amount = amount_list[counter];
                     std::cout << "RemovieCustomer - Customer ID: " << temp_amount.range(31, 0) << std::endl;
-                    if (!projects[temp_amount.range(31, 0)]) {
+                    if (!customers[temp_amount.range(31, 0)]) {
                         proposed_value.range(31, 30) = 3;
                         proposed_value.range(29, 0) = temp_amount;
                         proposed.write(ProposedValue(proposed_value, 1));
