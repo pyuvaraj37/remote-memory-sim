@@ -135,11 +135,15 @@ xclbin: build
 
 ############################## Setting Rules for Binary Containers (Building Kernels) ##############################
 # Add krnl2 for two-array functions and load2 ./src/hash_table.cpp
-$(TEMP_DIR)/${KERNEL}_krnl.xo: ./src/${KERNEL}_krnl.cpp ./src/remote_memory.cpp 
+$(TEMP_DIR)/${KERNEL}_krnl.xo: ./src/${KERNEL}_krnl.cpp ./src/remote_memory.cpp
 	mkdir -p $(TEMP_DIR)
 	$(VPP) $(VPP_FLAGS) -c -k ${KERNEL}_krnl --temp_dir $(TEMP_DIR)  -I'$(<D)' -o'$@' $^
 BINARY_CONTAINER_krnl_OBJS += $(TEMP_DIR)/${KERNEL}_krnl.xo
 
+$(TEMP_DIR)/load_krnl.xo: ./src/load_krnl.cpp
+	mkdir -p $(TEMP_DIR)
+	$(VPP) $(VPP_FLAGS) -c -k load_krnl --temp_dir $(TEMP_DIR)  -I'$(<D)' -o'$@' $^
+BINARY_CONTAINER_krnl_OBJS += $(TEMP_DIR)/load_krnl.xo
 
 $(BUILD_DIR)/${KERNEL}_krnl.xclbin: $(BINARY_CONTAINER_krnl_OBJS)
 	mkdir -p $(BUILD_DIR)

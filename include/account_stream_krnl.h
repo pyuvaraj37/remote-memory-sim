@@ -7,12 +7,11 @@
 #include <ap_int.h>
 #include <ap_fixed.h>
 #include "communication.hpp"
-#include "remote_memory.h"
 
 #pragma once
 
 const int NUM_NODES = 12; 
-const int SYNC_GROUPS = 2; 
+const int SYNC_GROUPS = 1; 
 
 // Need for QP info
 const ap_uint<32> BASE_IP_ADDR = 0xe0d4010b;
@@ -22,7 +21,7 @@ const uint32_t UDP = 0x000012b7;
 static bool FOLLOWER_LIST[NUM_NODES-1] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
 //25% write log size (smaller % can use this as well)
-const int NUM_SLOTS = 500000 * 2; 
+const int NUM_SLOTS = 125000 * 2; 
 const int FIFO_LENGTH = 5;
 
 // Constants for HeartBeat Memory
@@ -132,7 +131,6 @@ void stream_2_to_1(
 void meta_merger(
     hls::stream<ap_uint<256>>& a_tx_meta,
     hls::stream<ap_uint<256>>& b_tx_meta,
-    hls::stream<ap_uint<256>>& c_tx_meta,
     //hls::stream<ap_uint<64>>& a_tx_data,
     //hls::stream<ap_uint<64>>& b_tx_data,
     hls::stream<pkt256>& d_tx_meta
@@ -148,22 +146,18 @@ void meta_merger(
         a_tx_meta.read(temp_val_256);
         temp_pkt_256.data(255, 0) = temp_val_256.range(255, 0); 
         d_tx_meta.write(temp_pkt_256);
-    } else if (!b_tx_meta.empty() && !d_tx_meta.full()) {
+    } 
+    else if (!b_tx_meta.empty() && !d_tx_meta.full()) {
         b_tx_meta.read(temp_val_256);
         temp_pkt_256.data(255, 0) = temp_val_256.range(255, 0); 
         d_tx_meta.write(temp_pkt_256);  
-    } else if (!c_tx_meta.empty() && !d_tx_meta.full()) {
-        c_tx_meta.read(temp_val_256);
-        temp_pkt_256.data(255, 0) = temp_val_256.range(255, 0); 
-        d_tx_meta.write(temp_pkt_256);  
-    }
+    } 
 
 }
 
 void data_merger(
     hls::stream<ap_uint<64>>& a_tx_data,
     hls::stream<ap_uint<64>>& b_tx_data,
-    hls::stream<ap_uint<64>>& c_tx_data,
     hls::stream<pkt64>& d_tx_data
 ) {
 
@@ -174,29 +168,20 @@ void data_merger(
 
     if (!a_tx_data.empty() && !d_tx_data.full()) {
         a_tx_data.read(temp_val_64);
-        if (temp_val_64 != 0xffff) {
-            temp_pkt_64.data(63, 0) = temp_val_64.range(63, 0); 
-            temp_pkt_64.keep(7, 0) = 0xff;
-            temp_pkt_64.last = 1; 
-            d_tx_data.write(temp_pkt_64);
-        }
-    } else if (!b_tx_data.empty() && !d_tx_data.full()) {
+        temp_pkt_64.data(63, 0) = temp_val_64.range(63, 0); 
+        temp_pkt_64.keep(7, 0) = 0xff;
+        temp_pkt_64.last = 1; 
+        d_tx_data.write(temp_pkt_64);
+        
+    } 
+    else if (!b_tx_data.empty() && !d_tx_data.full()) {
         b_tx_data.read(temp_val_64);
-        if (temp_val_64 != 0xffff) {
-            temp_pkt_64.data(63, 0) = temp_val_64.range(63, 0); 
-            temp_pkt_64.keep(7, 0) = 0xff;
-            temp_pkt_64.last = 1; 
-            d_tx_data.write(temp_pkt_64);       
-        } 
-    } else if (!c_tx_data.empty() && !d_tx_data.full()) {
-        c_tx_data.read(temp_val_64);
-        if (temp_val_64 != 0xffff) {
-            temp_pkt_64.data(63, 0) = temp_val_64.range(63, 0); 
-            temp_pkt_64.keep(7, 0) = 0xff;
-            temp_pkt_64.last = 1; 
-            d_tx_data.write(temp_pkt_64);   
-        }     
-    }
+        temp_pkt_64.data(63, 0) = temp_val_64.range(63, 0); 
+        temp_pkt_64.keep(7, 0) = 0xff;
+        temp_pkt_64.last = 1; 
+        d_tx_data.write(temp_pkt_64);       
+
+    } 
 
 }
 

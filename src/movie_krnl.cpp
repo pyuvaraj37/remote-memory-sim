@@ -763,22 +763,22 @@ void movie(
             number_of_nodes
         );
 
-        addEmployee(
-            board_number, 
-            number_of_nodes,
-            add_req, 
-            add_tx_meta, 
-            add_tx_data
-        );
+        // addEmployee(
+        //     board_number, 
+        //     number_of_nodes,
+        //     add_req, 
+        //     add_tx_meta, 
+        //     add_tx_data
+        // );
 
-        stream_2_to_1(
-            smr_tx_meta,
-            add_tx_meta,
-            smr_tx_data,
-            add_tx_data,
-            debug_tx_meta,
-            debug_tx_data
-        ); 
+        // stream_2_to_1(
+        //     smr_tx_meta,
+        //     add_tx_meta,
+        //     smr_tx_data,
+        //     add_tx_data,
+        //     debug_tx_meta,
+        //     debug_tx_data
+        // ); 
 
         // meta_merger(
         //     smr_tx_meta,
@@ -795,8 +795,8 @@ void movie(
         // );
 
         remote_memory(
-            debug_tx_meta, 
-            debug_tx_data,
+            smr_tx_meta, 
+            smr_tx_data,
             HBM_PTR
         ); 
 
